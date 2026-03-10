@@ -1,1 +1,49 @@
-# probable-couscous
+# Self-Hosted Email Tracker
+
+This project is a lightweight email tracking system for logging opens and clicks of emails sent from Gmail (including mobile). It uses a Google Apps Script to process drafted emails and a Python FastAPI backend deployed via Docker to a Raspberry Pi (or any server).
+
+## Components
+- Python FastAPI Server (Dockerized, Multi-arch for Raspberry Pi).
+- SQLite Database for logging tracking data locally.
+- Google Apps Script snippet for injecting tracking links/pixels into drafts.
+
+## Setup Instructions
+
+### 1. Server Setup (Raspberry Pi/Linux)
+
+1. Make sure Docker and Docker Compose are installed on your device.
+2. Clone this repository to your Raspberry Pi.
+3. Open a terminal in the repository folder and run:
+   ```bash
+   docker-compose up -d
+   ```
+4. The service will be running on port `8080`.
+5. Check if it's working by visiting `http://<your-pi-ip>:8080/dashboard`.
+6. To make the service accessible from the outside (which is required for tracking to work), you can use a tool like Cloudflare Tunnels, Ngrok, or configure port forwarding on your router. Make a note of your public URL.
+
+### 2. Google Apps Script Setup
+
+1. In your Gmail account, create a new label named `TrackMe`.
+2. Go to [script.google.com](https://script.google.com) and create a new project.
+3. Copy the contents of the `google_apps_script.js` file into the editor.
+4. Update the `TRACKING_SERVER_URL` variable at the top of the file to your public URL from the server setup phase.
+5. Save the project setup.
+6. Set up a Time-driven Trigger:
+   - Click the **Triggers** icon (the clock 🕒 on the left).
+   - Click **Add Trigger**.
+   - Choose `processTrackedDrafts` as the function to run.
+   - Set the event source to **Time-driven**.
+   - Set the type to **Minutes timer** (e.g., every 1 or 5 minutes).
+   - Save the trigger. (Google might ask you to authorize the script; follow the prompts to grant permission).
+
+## Usage
+
+1. In Gmail (desktop or your mobile app), compose a new email.
+2. Save it as a Draft.
+3. Apply the `TrackMe` label to that draft.
+4. Let the Google Apps Script run (based on your timer). The script will append a tracking pixel, wrap any links for tracking, send the email automatically, and delete the draft.
+5. You can view your tracking stats by visiting `http://<your-public-url>/dashboard`.
+
+## Database
+
+The tracking events are logged into a local `tracking.db` SQLite file created inside the container and mounted via Docker Compose.

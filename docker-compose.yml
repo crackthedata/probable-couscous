@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  email-tracker:
+    build: .
+    container_name: email-tracker
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./tracking.db:/app/tracking.db
