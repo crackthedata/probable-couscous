@@ -1,10 +1,13 @@
 import sqlite3
 import datetime
 from fastapi import FastAPI, Request, BackgroundTasks
-from fastapi.responses import Response, RedirectResponse, HTMLResponse
+from fastapi.responses import Response, RedirectResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import base64
 
 app = FastAPI(title="Email Tracker")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 DB_FILE = "tracking.db"
 
@@ -76,49 +79,19 @@ async def track_click(id: str, url: str, request: Request, background_tasks: Bac
     background_tasks.add_task(log_click, id, url, ip_address, user_agent)
     return RedirectResponse(url=url)
 
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard():
+@app.get("/api/stats")
+async def api_stats():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('SELECT email_id, COUNT(*) as count, MAX(timestamp) as last_open FROM opens GROUP BY email_id ORDER BY last_open DESC')
-    opens = c.fetchall()
+    opens = [{"email_id": row[0], "count": row[1], "last_open": row[2]} for row in c.fetchall()]
     
     c.execute('SELECT email_id, url, COUNT(*) as count, MAX(timestamp) as last_click FROM clicks GROUP BY email_id, url ORDER BY last_click DESC')
-    clicks = c.fetchall()
+    clicks = [{"email_id": row[0], "url": row[1], "count": row[2], "last_click": row[3]} for row in c.fetchall()]
     conn.close()
     
-    html = """
-    <html>
-        <head>
-            <title>Email Tracker Dashboard</title>
-            <style>
-                body { font-family: sans-serif; padding: 20px; }
-                table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-            </style>
-        </head>
-        <body>
-            <h1>Email Tracker Dashboard</h1>
-            
-            <h2>Opens</h2>
-            <table>
-                <tr><th>Email ID</th><th>Total Opens</th><th>Last Open</th></tr>
-    """
-    for row in opens:
-        html += f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td></tr>"
-    html += """
-            </table>
-            
-            <h2>Clicks</h2>
-            <table>
-                <tr><th>Email ID</th><th>URL</th><th>Total Clicks</th><th>Last Click</th></tr>
-    """
-    for row in clicks:
-        html += f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td></tr>"
-    html += """
-            </table>
-        </body>
-    </html>
-    """
-    return HTMLResponse(content=html)
+    return {"opens": opens, "clicks": clicks}
+
+@app.get("/dashboard")
+async def dashboard():
+    return FileResponse("static/index.html")

@@ -19,7 +19,13 @@ This project is a lightweight email tracking system for logging opens and clicks
    ```
 4. The service will be running on port `8080`.
 5. Check if it's working by visiting `http://<your-pi-ip>:8080/dashboard`.
-6. To make the service accessible from the outside (which is required for tracking to work), you can use a tool like Cloudflare Tunnels, Ngrok, or configure port forwarding on your router. Make a note of your public URL.
+6. To make the service accessible from the outside (which is required for tracking to work), we recommend using **Cloudflare Tunnels**.
+   - Install `cloudflared` on your Raspberry Pi: `curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb && sudo dpkg -i cloudflared.deb` (Note: use `armhf.deb` or `amd64.deb` depending on your architecture).
+   - **Quick Tunnel (No domain needed)**:
+     Run `cloudflared tunnel --url http://localhost:8080` and copy the generated `https://*.trycloudflare.com` link. Keep this terminal open (e.g., in a `tmux` or `screen` session).
+   - **Permanent Tunnel with Custom Domain**: 
+     Log into the Cloudflare Zero Trust Dashboard, go to Networks -> Tunnels, create a new tunnel, and follow the installation command provided to point it to `http://localhost:8080`.
+   - Make a note of your public URL to use in the Google Apps Script setup.
 
 ### 2. Google Apps Script Setup
 
