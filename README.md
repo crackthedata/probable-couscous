@@ -17,14 +17,14 @@ This project is a lightweight email tracking system for logging opens and clicks
    ```bash
    docker-compose up -d
    ```
-4. The service will be running on port `8080`.
-5. Check if it's working by visiting `http://<your-pi-ip>:8080/dashboard`.
+4. The service will be running on port `8081` (you can change this in `docker-compose.yml` if it conflicts with another service).
+5. Check if it's working by visiting `http://<your-pi-ip>:8081/dashboard`.
 6. To make the service accessible from the outside (which is required for tracking to work), we recommend using **Cloudflare Tunnels**.
    - Install `cloudflared` on your Raspberry Pi: `curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64.deb && sudo dpkg -i cloudflared.deb` (Note: use `armhf.deb` or `amd64.deb` depending on your architecture).
    - **Quick Tunnel (No domain needed)**:
-     Run `cloudflared tunnel --url http://localhost:8080` and copy the generated `https://*.trycloudflare.com` link. Keep this terminal open (e.g., in a `tmux` or `screen` session).
+     Run `cloudflared tunnel --url http://localhost:8081` and copy the generated `https://*.trycloudflare.com` link. Keep this terminal open (e.g., in a `tmux` or `screen` session).
    - **Permanent Tunnel with Custom Domain**: 
-     Log into the Cloudflare Zero Trust Dashboard, go to Networks -> Tunnels, create a new tunnel, and follow the installation command provided to point it to `http://localhost:8080`.
+     Log into the Cloudflare Zero Trust Dashboard, go to Networks -> Tunnels, create a new tunnel, and follow the installation command provided to point it to `http://localhost:8081`.
    - Make a note of your public URL to use in the Google Apps Script setup.
 
 ### 2. Google Apps Script Setup
@@ -53,3 +53,6 @@ This project is a lightweight email tracking system for logging opens and clicks
 ## Database
 
 The tracking events are logged into a local `tracking.db` SQLite file created inside the container and mounted via Docker Compose.
+
+**Backing up your database:**
+If you want to back up your database to Google Drive, OneDrive, or another cloud service on your Raspberry Pi, you can change the volume mount location in `docker-compose.yml`. Simply change `./tracking.db` to the absolute path of your sync folder (e.g., `/home/pi/GoogleDrive/tracking.db`).
