@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Tracking Dashboard</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: rgba(22, 27, 34, 0.7);
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #3182ce;
+            --border-color: rgba(48, 54, 61, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --success: #238636;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(88, 166, 255, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(35, 134, 54, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        header {
+            margin-bottom: 3rem;
+            text-align: center;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(to right, #58a6ff, #54ea9c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: fadeInUp 0.8s ease-out;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(88, 166, 255, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--accent);
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.875rem;
+            padding: 1rem 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1rem 0.5rem;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.3);
+            font-size: 0.95rem;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr {
+            transition: background-color 0.2s;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+        }
+
+        .url-cell {
+            color: var(--accent);
+            text-decoration: none;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .url-cell:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .loader {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(88, 166, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 1s ease-in-out infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Email Tracking Dashboard</h1>
+        <p class="subtitle">Real-time insights on your email performance</p>
+    </header>
+
+    <div id="loading" style="text-align: center; width: 100%;">
+        <div class="loader"></div>
+        <p style="color: var(--text-muted);">Fetching latest data...</p>
+    </div>
+
+    <div class="grid" id="dashboard-content" style="display: none;">
+        <!-- Opens Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent)"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    Email Opens
+                </div>
+                <span class="badge" id="opens-count">0 tracking</span>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email ID</th>
+                            <th>Opens</th>
+                            <th>Last Opened</th>
+                        </tr>
+                    </thead>
+                    <tbody id="opens-tbody">
+                        <!-- Data inserted here via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Clicks Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--success)"><path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path><path d="m21 3-9 9"></path><path d="M15 3h6v6"></path></svg>
+                    Link Clicks
+                </div>
+                <span class="badge" id="clicks-count" style="background: rgba(35, 134, 54, 0.1); color: var(--success);">0 tracking</span>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email ID</th>
+                            <th>Link</th>
+                            <th>Clicks</th>
+                            <th>Last Clicked</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clicks-tbody">
+                        <!-- Data inserted here via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function formatDate(dateStr) {
+        if (!dateStr) return 'N/A';
+        const date = new Date(dateStr + 'Z'); // SQLite logs in UTC (default)
+        return date.toLocaleString();
+    }
+
+    async function fetchData() {
+        try {
+            const response = await fetch('/api/stats');
+            const data = await response.json();
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard-content').style.display = 'grid';
+
+            // Populate Opens
+            const opensTbody = document.getElementById('opens-tbody');
+            document.getElementById('opens-count').innerText = `${data.opens.length} emails`;
+            if (data.opens.length === 0) {
+                opensTbody.innerHTML = `<tr><td colspan="3"><div class="empty-state">No email opens tracked yet.</div></td></tr>`;
+            } else {
+                opensTbody.innerHTML = data.opens.map(open => `
+                    <tr>
+                        <td style="font-family: monospace; color: #e6edf3;">${open.email_id}</td>
+                        <td style="font-weight: 600;">${open.count}</td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">${formatDate(open.last_open)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // Populate Clicks
+            const clicksTbody = document.getElementById('clicks-tbody');
+            document.getElementById('clicks-count').innerText = `${data.clicks.length} links`;
+            if (data.clicks.length === 0) {
+                clicksTbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">No link clicks tracked yet.</div></td></tr>`;
+            } else {
+                clicksTbody.innerHTML = data.clicks.map(click => `
+                    <tr>
+                        <td style="font-family: monospace; color: #e6edf3;">${click.email_id}</td>
+                        <td><a href="${click.url}" target="_blank" class="url-cell" title="${click.url}">${click.url}</a></td>
+                        <td style="font-weight: 600;">${click.count}</td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">${formatDate(click.last_click)}</td>
+                    </tr>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            document.getElementById('loading').innerHTML = `<div class="empty-state" style="color: #ff7b72;">Failed to load data. Is the backend running?</div>`;
+        }
+    }
+
+    // Refresh every 10 seconds
+    fetchData();
+    setInterval(fetchData, 10000);
+</script>
+
+</body>
+</html>
