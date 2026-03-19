@@ -25,9 +25,12 @@ function processTrackedDrafts() {
             var body = message.getBody();
             // Generate a unique ID for this email
             var emailId = "id_" + new Date().getTime();
+            
+            var encSubj = encodeURIComponent(message.getSubject() || "No Subject");
+            var encTo = encodeURIComponent(message.getTo() || "Unknown Recipient");
 
             // 1. Inject Open Tracker (Python Server)
-            var pixelUrl = TRACKING_SERVER_URL + '/open/' + emailId;
+            var pixelUrl = TRACKING_SERVER_URL + '/open/' + emailId + '?subject=' + encSubj + '&recipient=' + encTo;
             var pixel = '<img src="' + pixelUrl + '" width="1" height="1" alt="" style="display:none;" />';
 
             // 2. Wrap Links for Click Tracking
@@ -36,7 +39,7 @@ function processTrackedDrafts() {
                 if (p1.includes(TRACKING_SERVER_URL) || p1.startsWith("mailto:")) {
                     return match;
                 }
-                return 'href="' + TRACKING_SERVER_URL + '/click?id=' + emailId + '&url=' + encodeURIComponent(p1) + '"';
+                return 'href="' + TRACKING_SERVER_URL + '/click?id=' + emailId + '&subject=' + encSubj + '&recipient=' + encTo + '&url=' + encodeURIComponent(p1) + '"';
             });
 
             // 3. Send and Clean Up

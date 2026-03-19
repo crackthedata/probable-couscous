@@ -52,6 +52,7 @@
             margin: 0;
             background: linear-gradient(to right, #58a6ff, #54ea9c);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -228,7 +229,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Email ID</th>
+                            <th>Recipient</th>
+                            <th>Subject</th>
                             <th>Opens</th>
                             <th>Last Opened</th>
                         </tr>
@@ -253,7 +255,8 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Email ID</th>
+                            <th>Recipient</th>
+                            <th>Subject</th>
                             <th>Link</th>
                             <th>Clicks</th>
                             <th>Last Clicked</th>
@@ -287,11 +290,12 @@
             const opensTbody = document.getElementById('opens-tbody');
             document.getElementById('opens-count').innerText = `${data.opens.length} emails`;
             if (data.opens.length === 0) {
-                opensTbody.innerHTML = `<tr><td colspan="3"><div class="empty-state">No email opens tracked yet.</div></td></tr>`;
+                opensTbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">No email opens tracked yet.</div></td></tr>`;
             } else {
                 opensTbody.innerHTML = data.opens.map(open => `
                     <tr>
-                        <td style="font-family: monospace; color: #e6edf3;">${open.email_id}</td>
+                        <td style="font-weight: 500; color: #e6edf3;">${open.recipient || 'Unknown'}</td>
+                        <td style="color: var(--text-muted);">${open.subject || 'Unknown'}</td>
                         <td style="font-weight: 600;">${open.count}</td>
                         <td style="color: var(--text-muted); font-size: 0.85rem;">${formatDate(open.last_open)}</td>
                     </tr>
@@ -302,11 +306,12 @@
             const clicksTbody = document.getElementById('clicks-tbody');
             document.getElementById('clicks-count').innerText = `${data.clicks.length} links`;
             if (data.clicks.length === 0) {
-                clicksTbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">No link clicks tracked yet.</div></td></tr>`;
+                clicksTbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No link clicks tracked yet.</div></td></tr>`;
             } else {
                 clicksTbody.innerHTML = data.clicks.map(click => `
                     <tr>
-                        <td style="font-family: monospace; color: #e6edf3;">${click.email_id}</td>
+                        <td style="font-weight: 500; color: #e6edf3;">${click.recipient || 'Unknown'}</td>
+                        <td style="color: var(--text-muted);">${click.subject || 'Unknown'}</td>
                         <td><a href="${click.url}" target="_blank" class="url-cell" title="${click.url}">${click.url}</a></td>
                         <td style="font-weight: 600;">${click.count}</td>
                         <td style="color: var(--text-muted); font-size: 0.85rem;">${formatDate(click.last_click)}</td>
