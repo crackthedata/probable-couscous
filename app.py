@@ -48,6 +48,14 @@ def init_db():
         c.execute("ALTER TABLE clicks ADD COLUMN recipient TEXT DEFAULT 'Unknown'")
     except sqlite3.OperationalError:
         pass
+    try:
+        c.execute("ALTER TABLE opens ADD COLUMN account TEXT DEFAULT 'Unknown'")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        c.execute("ALTER TABLE clicks ADD COLUMN account TEXT DEFAULT 'Unknown'")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
@@ -55,31 +63,31 @@ def init_db():
 def on_startup():
     init_db()
 
-def log_open(email_id: str, ip_address: str, user_agent: str, subject: str = "Unknown", recipient: str = "Unknown"):
+def log_open(email_id: str, ip_address: str, user_agent: str, subject: str = "Unknown", recipient: str = "Unknown", account: str = "Unknown"):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('''
-        INSERT INTO opens (email_id, ip_address, user_agent, subject, recipient)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (email_id, ip_address, user_agent, subject, recipient))
+        INSERT INTO opens (email_id, ip_address, user_agent, subject, recipient, account)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (email_id, ip_address, user_agent, subject, recipient, account))
     conn.commit()
     conn.close()
 
-def log_click(email_id: str, url: str, ip_address: str, user_agent: str, subject: str = "Unknown", recipient: str = "Unknown"):
+def log_click(email_id: str, url: str, ip_address: str, user_agent: str, subject: str = "Unknown", recipient: str = "Unknown", account: str = "Unknown"):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('''
-        INSERT INTO clicks (email_id, url, ip_address, user_agent, subject, recipient)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (email_id, url, ip_address, user_agent, subject, recipient))
+        INSERT INTO clicks (email_id, url, ip_address, user_agent, subject, recipient, account)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (email_id, url, ip_address, user_agent, subject, recipient, account))
     conn.commit()
     conn.close()
 
 @app.get("/open/{email_id}")
-async def track_open(email_id: str, request: Request, background_tasks: BackgroundTasks, subject: str = "Unknown", recipient: str = "Unknown"):
+async def track_open(email_id: str, request: Request, background_tasks: BackgroundTasks, subject: str = "Unknown", recipient: str = "Unknown", account: str = "Unknown"):
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
-    background_tasks.add_task(log_open, email_id, ip_address, user_agent, subject, recipient)
+    background_tasks.add_task(log_open, email_id, ip_address, user_agent, subject, recipient, account)
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
@@ -88,21 +96,21 @@ async def track_open(email_id: str, request: Request, background_tasks: Backgrou
     return Response(content=TRANSPARENT_PIXEL, media_type="image/png", headers=headers)
 
 @app.get("/click")
-async def track_click(id: str, url: str, request: Request, background_tasks: BackgroundTasks, subject: str = "Unknown", recipient: str = "Unknown"):
+async def track_click(id: str, url: str, request: Request, background_tasks: BackgroundTasks, subject: str = "Unknown", recipient: str = "Unknown", account: str = "Unknown"):
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
-    background_tasks.add_task(log_click, id, url, ip_address, user_agent, subject, recipient)
+    background_tasks.add_task(log_click, id, url, ip_address, user_agent, subject, recipient, account)
     return RedirectResponse(url=url)
 
 @app.get("/api/stats")
 async def api_stats():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('SELECT email_id, MAX(subject) as subject, MAX(recipient) as recipient, COUNT(*) as count, MAX(timestamp) as last_open FROM opens GROUP BY email_id ORDER BY last_open DESC')
-    opens = [{"email_id": row[0], "subject": row[1], "recipient": row[2], "count": row[3], "last_open": row[4]} for row in c.fetchall()]
+    c.execute('SELECT email_id, MAX(subject) as subject, MAX(recipient) as recipient, MAX(account) as account, COUNT(*) as count, MAX(timestamp) as last_open FROM opens GROUP BY email_id ORDER BY last_open DESC')
+    opens = [{"email_id": row[0], "subject": row[1], "recipient": row[2], "account": row[3], "count": row[4], "last_open": row[5]} for row in c.fetchall()]
     
-    c.execute('SELECT email_id, url, MAX(subject) as subject, MAX(recipient) as recipient, COUNT(*) as count, MAX(timestamp) as last_click FROM clicks GROUP BY email_id, url ORDER BY last_click DESC')
-    clicks = [{"email_id": row[0], "url": row[1], "subject": row[2], "recipient": row[3], "count": row[4], "last_click": row[5]} for row in c.fetchall()]
+    c.execute('SELECT email_id, url, MAX(subject) as subject, MAX(recipient) as recipient, MAX(account) as account, COUNT(*) as count, MAX(timestamp) as last_click FROM clicks GROUP BY email_id, url ORDER BY last_click DESC')
+    clicks = [{"email_id": row[0], "url": row[1], "subject": row[2], "recipient": row[3], "account": row[4], "count": row[5], "last_click": row[6]} for row in c.fetchall()]
     conn.close()
     
     return {"opens": opens, "clicks": clicks}
