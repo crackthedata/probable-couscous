@@ -80,7 +80,12 @@ async def track_open(email_id: str, request: Request, background_tasks: Backgrou
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
     background_tasks.add_task(log_open, email_id, ip_address, user_agent, subject, recipient)
-    return Response(content=TRANSPARENT_PIXEL, media_type="image/png")
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
+    return Response(content=TRANSPARENT_PIXEL, media_type="image/png", headers=headers)
 
 @app.get("/click")
 async def track_click(id: str, url: str, request: Request, background_tasks: BackgroundTasks, subject: str = "Unknown", recipient: str = "Unknown"):
