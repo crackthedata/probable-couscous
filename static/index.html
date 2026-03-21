@@ -37,7 +37,7 @@
 
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 95%;
         }
 
         header {
@@ -229,6 +229,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>Account</th>
                             <th>Recipient</th>
                             <th>Subject</th>
                             <th>Opens</th>
@@ -255,6 +256,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>Account</th>
                             <th>Recipient</th>
                             <th>Subject</th>
                             <th>Link</th>
@@ -296,10 +298,11 @@
             const opensTbody = document.getElementById('opens-tbody');
             document.getElementById('opens-count').innerText = `${data.opens.length} emails`;
             if (data.opens.length === 0) {
-                opensTbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">No email opens tracked yet.</div></td></tr>`;
+                opensTbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No email opens tracked yet.</div></td></tr>`;
             } else {
                 opensTbody.innerHTML = data.opens.map(open => `
                     <tr>
+                        <td style="color: var(--text-main); font-weight: 500;">${extractEmail(open.account) || 'Unknown'}</td>
                         <td style="font-weight: 500; color: #e6edf3;">${extractEmail(open.recipient) || 'Unknown'}</td>
                         <td style="color: var(--text-muted);">${open.subject || 'Unknown'}</td>
                         <td style="font-weight: 600;">${open.count}</td>
@@ -312,10 +315,11 @@
             const clicksTbody = document.getElementById('clicks-tbody');
             document.getElementById('clicks-count').innerText = `${data.clicks.length} links`;
             if (data.clicks.length === 0) {
-                clicksTbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No link clicks tracked yet.</div></td></tr>`;
+                clicksTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No link clicks tracked yet.</div></td></tr>`;
             } else {
                 clicksTbody.innerHTML = data.clicks.map(click => `
                     <tr>
+                        <td style="color: var(--text-main); font-weight: 500;">${extractEmail(click.account) || 'Unknown'}</td>
                         <td style="font-weight: 500; color: #e6edf3;">${extractEmail(click.recipient) || 'Unknown'}</td>
                         <td style="color: var(--text-muted);">${click.subject || 'Unknown'}</td>
                         <td><a href="${click.url}" target="_blank" class="url-cell" title="${click.url}">${click.url}</a></td>

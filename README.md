@@ -13,9 +13,9 @@ This project is a lightweight email tracking system for logging opens and clicks
 
 1. Make sure Docker and Docker Compose are installed on your device.
 2. Clone this repository to your Raspberry Pi.
-3. Open a terminal in the repository folder and run:
+3. Open a terminal in the repository folder and run the following to build the app and start the server:
    ```bash
-   docker compose up -d
+   docker compose up -d --build
    ```
 4. The service will be running on port `8081` (you can change this in `docker-compose.yml` if it conflicts with another service).
 5. Check if it's working by visiting `http://<your-pi-ip>:8081/dashboard`.
