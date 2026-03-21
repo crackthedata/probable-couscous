@@ -302,7 +302,7 @@
             } else {
                 opensTbody.innerHTML = data.opens.map(open => `
                     <tr>
-                        <td style="color: var(--text-main); font-weight: 500;">${open.account || 'Unknown'}</td>
+                        <td style="color: var(--text-main); font-weight: 500;">${extractEmail(open.account) || 'Unknown'}</td>
                         <td style="font-weight: 500; color: #e6edf3;">${extractEmail(open.recipient) || 'Unknown'}</td>
                         <td style="color: var(--text-muted);">${open.subject || 'Unknown'}</td>
                         <td style="font-weight: 600;">${open.count}</td>
@@ -319,7 +319,7 @@
             } else {
                 clicksTbody.innerHTML = data.clicks.map(click => `
                     <tr>
-                        <td style="color: var(--text-main); font-weight: 500;">${click.account || 'Unknown'}</td>
+                        <td style="color: var(--text-main); font-weight: 500;">${extractEmail(click.account) || 'Unknown'}</td>
                         <td style="font-weight: 500; color: #e6edf3;">${extractEmail(click.recipient) || 'Unknown'}</td>
                         <td style="color: var(--text-muted);">${click.subject || 'Unknown'}</td>
                         <td><a href="${click.url}" target="_blank" class="url-cell" title="${click.url}">${click.url}</a></td>

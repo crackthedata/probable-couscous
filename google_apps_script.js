@@ -29,7 +29,7 @@ function processTrackedDrafts() {
             var encSubj = encodeURIComponent(message.getSubject() || "No Subject");
             var encTo = encodeURIComponent(message.getTo() || "Unknown Recipient");
 
-            var account = Session.getActiveUser().getEmail();
+            var account = message.getFrom() || "Unknown Account";
             var encAccount = encodeURIComponent(account);
 
             // 1. Inject Open Tracker (Python Server)
