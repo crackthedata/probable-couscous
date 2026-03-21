@@ -14,7 +14,7 @@ function processTrackedDrafts() {
 
     for (var i = 0; i < drafts.length; i++) {
         var message = drafts[i].getMessage();
-        var thread = drafts[i].getThread();
+        var thread = message.getThread();
 
         // Only process if the draft thread is labeled "TrackMe"
         var threadLabels = thread.getLabels();
