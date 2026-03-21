@@ -1,0 +1,13 @@
+services:
+  email-tracker:
+    build: .
+    container_name: email-tracker
+    restart: unless-stopped
+    ports:
+      # Format is "HOST_PORT:CONTAINER_PORT". 
+      # Change 8081 to any available port on your Pi if there's a conflict.
+      - "8081:8080"
+    volumes:
+      # Change ./tracking.db to the absolute path of your cloud sync folder
+      # Example: - /home/pi/OneDrive/email-tracker/tracking.db:/app/tracking.db
+      - ./tracking.db:/app/tracking.db
