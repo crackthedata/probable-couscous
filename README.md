@@ -23,6 +23,7 @@ This project is a lightweight email tracking system for logging opens and clicks
    - Install `cloudflared` on your Raspberry Pi and configure a Tunnel.
    - **Permanent Tunnel with Custom Domain**: 
      Log into the Cloudflare Zero Trust Dashboard, go to Networks -> Tunnels, create a new tunnel, and follow the installation command provided to point it to `http://localhost:8081`.
+   - **Securing Your Tunnel**: In the Cloudflare Zero Trust Dashboard (Access -> Applications), secure your tunnel's domain by requiring authentication (e.g., email OTP). **Crucially**, you must create "Bypass" rules for the `/open*` and `/click*` paths. This ensures your dashboard remains private while the tracking pixels and links remain publicly accessible.
    - Make a note of your public URL to use in the Google Apps Script setup.
 
 ### 2. Google Apps Script Setup

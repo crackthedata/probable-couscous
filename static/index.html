@@ -272,6 +272,12 @@
 </div>
 
 <script>
+    function extractEmail(recipientStr) {
+        if (!recipientStr) return 'Unknown';
+        const match = recipientStr.match(/<([^>]+)>/);
+        return match ? match[1].trim() : String(recipientStr).trim();
+    }
+
     function formatDate(dateStr) {
         if (!dateStr) return 'N/A';
         const date = new Date(dateStr + 'Z'); // SQLite logs in UTC (default)
@@ -294,7 +300,7 @@
             } else {
                 opensTbody.innerHTML = data.opens.map(open => `
                     <tr>
-                        <td style="font-weight: 500; color: #e6edf3;">${open.recipient || 'Unknown'}</td>
+                        <td style="font-weight: 500; color: #e6edf3;">${extractEmail(open.recipient) || 'Unknown'}</td>
                         <td style="color: var(--text-muted);">${open.subject || 'Unknown'}</td>
                         <td style="font-weight: 600;">${open.count}</td>
                         <td style="color: var(--text-muted); font-size: 0.85rem;">${formatDate(open.last_open)}</td>
@@ -310,7 +316,7 @@
             } else {
                 clicksTbody.innerHTML = data.clicks.map(click => `
                     <tr>
-                        <td style="font-weight: 500; color: #e6edf3;">${click.recipient || 'Unknown'}</td>
+                        <td style="font-weight: 500; color: #e6edf3;">${extractEmail(click.recipient) || 'Unknown'}</td>
                         <td style="color: var(--text-muted);">${click.subject || 'Unknown'}</td>
                         <td><a href="${click.url}" target="_blank" class="url-cell" title="${click.url}">${click.url}</a></td>
                         <td style="font-weight: 600;">${click.count}</td>
