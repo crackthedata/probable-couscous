@@ -43,9 +43,11 @@ This project is a lightweight email tracking system for logging opens and clicks
 
 ## Usage
 
-1. In Gmail (desktop or your mobile app), compose a new email.
+1. In Gmail (desktop or your mobile app), compose a new email or a reply.
 2. Save it as a Draft.
-3. Apply the `TrackMe` label to that draft.
+3. Apply the `TrackMe` label:
+   - **For new emails**: Click the 3 dots at the bottom of the compose window -> Label -> Check `TrackMe`.
+   - **For replies**: You cannot label the draft directly. Instead, apply the `TrackMe` label to the entire email conversation (thread) using the "Labels" icon at the top of the screen.
 4. Let the Google Apps Script run (based on your timer). The script will append a tracking pixel, wrap any links for tracking, send the email automatically, and delete the draft.
 5. You can view your tracking stats by visiting `http://<your-public-url>/dashboard`.
 
