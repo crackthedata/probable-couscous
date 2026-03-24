@@ -49,15 +49,15 @@ function processTrackedDrafts() {
                 return 'href="' + TRACKING_SERVER_URL + '/click?id=' + emailId + '&subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount + '&url=' + encodeURIComponent(p1) + '"';
             });
 
-            // 3. Send and Clean Up
-            GmailApp.sendEmail(message.getTo(), message.getSubject(), "", {
+            // 3. Update the draft and send it
+            var draft = drafts[i];
+            draft.update(message.getTo(), message.getSubject(), "", {
                 htmlBody: trackedBody + pixel,
                 cc: message.getCc(),
                 bcc: message.getBcc()
             });
-
-            // Clean up the draft
-            drafts[i].deleteDraft();
+            
+            draft.send();
             console.log("Sent tracked email with ID: " + emailId + " to: " + message.getTo());
         }
     }
