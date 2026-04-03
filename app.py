@@ -85,6 +85,16 @@ def log_click(email_id: str, url: str, ip_address: str, user_agent: str, subject
 
 @app.get("/open/{email_id}")
 async def track_open(email_id: str, request: Request, background_tasks: BackgroundTasks, subject: str = "Unknown", recipient: str = "Unknown", account: str = "Unknown"):
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
+    
+    # Check if the user has the ignore_tracking cookie
+    if request.cookies.get("ignore_tracking") == "true":
+        return Response(content=TRANSPARENT_PIXEL, media_type="image/png", headers=headers)
+        
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
     background_tasks.add_task(log_open, email_id, ip_address, user_agent, subject, recipient, account)
@@ -97,6 +107,10 @@ async def track_open(email_id: str, request: Request, background_tasks: Backgrou
 
 @app.get("/click")
 async def track_click(id: str, url: str, request: Request, background_tasks: BackgroundTasks, subject: str = "Unknown", recipient: str = "Unknown", account: str = "Unknown"):
+    # Check if the user has the ignore_tracking cookie
+    if request.cookies.get("ignore_tracking") == "true":
+        return RedirectResponse(url=url)
+        
     ip_address = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
     background_tasks.add_task(log_click, id, url, ip_address, user_agent, subject, recipient, account)
@@ -115,6 +129,29 @@ async def api_stats():
     
     return {"opens": opens, "clicks": clicks}
 
+@app.delete("/api/track/opens/{email_id}")
+async def delete_opens(email_id: str):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("DELETE FROM opens WHERE email_id = ?", (email_id,))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
+
+@app.delete("/api/track/clicks/{email_id}")
+async def delete_clicks(email_id: str, request: Request):
+    data = await request.json()
+    url = data.get("url")
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("DELETE FROM clicks WHERE email_id = ? AND url = ?", (email_id, url))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
+
 @app.get("/dashboard")
 async def dashboard():
-    return FileResponse("static/index.html")
+    response = FileResponse("static/index.html")
+    # Set a cookie valid for 1 year to ignore their own visits
+    response.set_cookie(key="ignore_tracking", value="true", max_age=31536000)
+    return response
