@@ -200,6 +200,22 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        .delete-btn {
+            background-color: transparent;
+            color: #ff7b72;
+            border: 1px solid rgba(255, 123, 114, 0.3);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .delete-btn:hover {
+            background-color: rgba(255, 123, 114, 0.1);
+            border-color: #ff7b72;
+        }
     </style>
 </head>
 <body>
@@ -234,6 +250,7 @@
                             <th>Subject</th>
                             <th>Opens</th>
                             <th>Last Opened</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="opens-tbody">
@@ -262,6 +279,7 @@
                             <th>Link</th>
                             <th>Clicks</th>
                             <th>Last Clicked</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="clicks-tbody">
@@ -274,6 +292,34 @@
 </div>
 
 <script>
+    async function deleteOpenItem(emailId) {
+        if (!confirm('Are you sure you want to delete all open records for this email?')) return;
+        
+        try {
+            await fetch(`/api/track/opens/${emailId}`, { method: 'DELETE' });
+            fetchData();
+        } catch (error) {
+            console.error('Error deleting opens:', error);
+            alert('Failed to delete open records.');
+        }
+    }
+
+    async function deleteClickItem(emailId, url) {
+        if (!confirm('Are you sure you want to delete all click records for this link?')) return;
+        
+        try {
+            await fetch(`/api/track/clicks/${emailId}`, { 
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+            fetchData();
+        } catch (error) {
+            console.error('Error deleting clicks:', error);
+            alert('Failed to delete click records.');
+        }
+    }
+
     function extractEmail(recipientStr) {
         if (!recipientStr) return 'Unknown';
         const match = recipientStr.match(/<([^>]+)>/);
@@ -298,7 +344,7 @@
             const opensTbody = document.getElementById('opens-tbody');
             document.getElementById('opens-count').innerText = `${data.opens.length} emails`;
             if (data.opens.length === 0) {
-                opensTbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No email opens tracked yet.</div></td></tr>`;
+                opensTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No email opens tracked yet.</div></td></tr>`;
             } else {
                 opensTbody.innerHTML = data.opens.map(open => `
                     <tr>
@@ -307,6 +353,7 @@
                         <td style="color: var(--text-muted);">${open.subject || 'Unknown'}</td>
                         <td style="font-weight: 600;">${open.count}</td>
                         <td style="color: var(--text-muted); font-size: 0.85rem;">${formatDate(open.last_open)}</td>
+                        <td><button class="delete-btn" onclick="deleteOpenItem('${open.email_id}')">Delete</button></td>
                     </tr>
                 `).join('');
             }
@@ -315,7 +362,7 @@
             const clicksTbody = document.getElementById('clicks-tbody');
             document.getElementById('clicks-count').innerText = `${data.clicks.length} links`;
             if (data.clicks.length === 0) {
-                clicksTbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No link clicks tracked yet.</div></td></tr>`;
+                clicksTbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">No link clicks tracked yet.</div></td></tr>`;
             } else {
                 clicksTbody.innerHTML = data.clicks.map(click => `
                     <tr>
@@ -325,6 +372,7 @@
                         <td><a href="${click.url}" target="_blank" class="url-cell" title="${click.url}">${click.url}</a></td>
                         <td style="font-weight: 600;">${click.count}</td>
                         <td style="color: var(--text-muted); font-size: 0.85rem;">${formatDate(click.last_click)}</td>
+                        <td><button class="delete-btn" onclick="deleteClickItem('${click.email_id}', '${click.url}')">Delete</button></td>
                     </tr>
                 `).join('');
             }
