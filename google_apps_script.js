@@ -24,7 +24,20 @@ function processTrackedDrafts() {
         return; // Exits naturally cleanly
     }
 
-    var trackedThreadIds = trackedThreads.map(function(t) { return t.getId(); });
+    // Identify exactly which message IDs are the drafts we need to modify
+    var targetMessageIds = [];
+    for (var i = 0; i < trackedThreads.length; i++) {
+        var messages = trackedThreads[i].getMessages();
+        for (var j = 0; j < messages.length; j++) {
+            if (messages[j].isDraft()) {
+                targetMessageIds.push(messages[j].getId());
+            }
+        }
+    }
+
+    if (targetMessageIds.length === 0) {
+        return; // Safety exit
+    }
 
     var drafts;
     try {
@@ -34,14 +47,22 @@ function processTrackedDrafts() {
         return;
     }
 
+    var draftsProcessed = 0;
+    var totalToProcess = targetMessageIds.length;
+
     for (var i = 0; i < drafts.length; i++) {
+        if (draftsProcessed >= totalToProcess) {
+            break; // Stop immediately once all target drafts are processed to avoid execution timeout
+        }
+
         try {
             var draft = drafts[i];
             var message = draft.getMessage();
-            var thread = message.getThread();
 
-            // Only process if the draft thread matches our search for labeled threads
-            if (trackedThreadIds.indexOf(thread.getId()) !== -1) {
+            // Check if this draft is one of our target drafts natively
+            if (targetMessageIds.indexOf(message.getId()) !== -1) {
+                draftsProcessed++; // Increment early to ensure we don't scan all drafts if an error occurs below
+
                 var body = message.getBody();
                 // Generate a unique ID for this email
                 var emailId = "id_" + new Date().getTime();
@@ -87,7 +108,7 @@ function processTrackedDrafts() {
             }
         } catch (e) {
             console.error("Error processing individual draft at index " + i + ": " + e);
-            // Skip this faulty draft but keep processing others
+            // Skip this faulty draft but keep processing others until we break
             continue;
         }
     }
