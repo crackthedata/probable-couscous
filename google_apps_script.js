@@ -10,55 +10,106 @@ function processTrackedDrafts() {
         return;
     }
 
-    var drafts = GmailApp.getDrafts();
+    // Optimization: First check if there are any threads with the label AND a draft.
+    // If none exist, we can exit early and save API calls.
+    var trackedThreads;
+    try {
+        trackedThreads = GmailApp.search('label:TrackMe is:draft');
+    } catch (e) {
+        console.error("Error searching for tracked threads: " + e);
+        return;
+    }
+
+    if (trackedThreads.length === 0) {
+        return; // Exits naturally cleanly
+    }
+
+    // Identify exactly which message IDs are the drafts we need to modify
+    var targetMessageIds = [];
+    for (var i = 0; i < trackedThreads.length; i++) {
+        var messages = trackedThreads[i].getMessages();
+        for (var j = 0; j < messages.length; j++) {
+            if (messages[j].isDraft()) {
+                targetMessageIds.push(messages[j].getId());
+            }
+        }
+    }
+
+    if (targetMessageIds.length === 0) {
+        return; // Safety exit
+    }
+
+    var drafts;
+    try {
+        drafts = GmailApp.getDrafts();
+    } catch (e) {
+        console.error("Error fetching drafts: " + e);
+        return;
+    }
+
+    var draftsProcessed = 0;
+    var totalToProcess = targetMessageIds.length;
 
     for (var i = 0; i < drafts.length; i++) {
-        var message = drafts[i].getMessage();
-        var thread = message.getThread();
+        if (draftsProcessed >= totalToProcess) {
+            break; // Stop immediately once all target drafts are processed to avoid execution timeout
+        }
 
-        // Only process if the draft thread is labeled "TrackMe"
-        var threadLabels = thread.getLabels();
-        var hasLabel = threadLabels.some(l => l.getName() === "TrackMe");
+        try {
+            var draft = drafts[i];
+            var message = draft.getMessage();
 
-        if (hasLabel) {
+            // Check if this draft is one of our target drafts natively
+            if (targetMessageIds.indexOf(message.getId()) !== -1) {
+                draftsProcessed++; // Increment early to ensure we don't scan all drafts if an error occurs below
 
-            var body = message.getBody();
-            // Generate a unique ID for this email
-            var emailId = "id_" + new Date().getTime();
-            
-            var encSubj = encodeURIComponent(message.getSubject() || "No Subject");
-            var encTo = encodeURIComponent(message.getTo() || "Unknown Recipient");
+                var body = message.getBody();
+                // Generate a unique ID for this email
+                var emailId = "id_" + new Date().getTime();
 
-            var rawFrom = message.getFrom() || "";
-            var accountMatch = rawFrom.match(/<([^>]+)>/);
-            var account = accountMatch ? accountMatch[1] : rawFrom.trim();
-            if (!account) account = "Unknown Account";
+                var encSubj = encodeURIComponent(message.getSubject() || "No Subject");
+                var encTo = encodeURIComponent(message.getTo() || "Unknown Recipient");
 
-            var encAccount = encodeURIComponent(account);
+                var rawFrom = message.getFrom() || "";
+                var accountMatch = rawFrom.match(/<([^>]+)>/);
+                var account = accountMatch ? accountMatch[1] : rawFrom.trim();
+                if (!account) account = "Unknown Account";
 
-            // 1. Inject Open Tracker (Python Server)
-            var pixelUrl = TRACKING_SERVER_URL + '/open/' + emailId + '?subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount;
-            var pixel = '<img src="' + pixelUrl + '" width="1" height="1" alt="" style="display:none;" />';
+                var encAccount = encodeURIComponent(account);
 
-            // 2. Wrap Links for Click Tracking
-            var trackedBody = body.replace(/href="([^"]*)"/gi, function (match, p1) {
-                // Don't double-wrap or wrap internal protocol links (mailto:)
-                if (p1.includes(TRACKING_SERVER_URL) || p1.startsWith("mailto:")) {
-                    return match;
-                }
-                return 'href="' + TRACKING_SERVER_URL + '/click?id=' + emailId + '&subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount + '&url=' + encodeURIComponent(p1) + '"';
-            });
+                // 1. Inject Open Tracker (Python Server)
+                var pixelUrl = TRACKING_SERVER_URL + '/open/' + emailId + '?subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount;
+                var pixel = '<img src="' + pixelUrl + '" width="1" height="1" alt="" style="display:none;" />';
 
-            // 3. Send and Clean Up
-            GmailApp.sendEmail(message.getTo(), message.getSubject(), "", {
-                htmlBody: trackedBody + pixel,
-                cc: message.getCc(),
-                bcc: message.getBcc()
-            });
+                // 2. Wrap Links for Click Tracking
+                var trackedBody = body.replace(/href="([^"]*)"/gi, function (match, p1) {
+                    // Don't double-wrap or wrap internal protocol links (mailto:)
+                    if (p1.includes(TRACKING_SERVER_URL) || p1.startsWith("mailto:")) {
+                        return match;
+                    }
+                    return 'href="' + TRACKING_SERVER_URL + '/click?id=' + emailId + '&subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount + '&url=' + encodeURIComponent(p1) + '"';
+                });
 
-            // Clean up the draft
-            drafts[i].deleteDraft();
-            console.log("Sent tracked email with ID: " + emailId + " to: " + message.getTo());
+                // 3. Update the draft and send it
+                var updatedDraft = draft.update(message.getTo(), message.getSubject(), "", {
+                    htmlBody: trackedBody + pixel,
+                    cc: message.getCc(),
+                    bcc: message.getBcc()
+                });
+
+                // Add a small delay to give Google's backend time to persist the updated draft
+                Utilities.sleep(1000);
+
+                updatedDraft.send();
+                console.log("Sent tracked email with ID: " + emailId + " to: " + message.getTo());
+                
+                // Extra safety sleep to prevent rate limiting if sending multiple quickly
+                Utilities.sleep(1000);
+            }
+        } catch (e) {
+            console.error("Error processing individual draft at index " + i + ": " + e);
+            // Skip this faulty draft but keep processing others until we break
+            continue;
         }
     }
 }
