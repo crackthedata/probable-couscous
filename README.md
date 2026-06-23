@@ -12,9 +12,31 @@ This project is a lightweight email tracking system for logging opens and clicks
 ### 1. Server Setup (Raspberry Pi/Linux)
 
 1. Make sure Docker and Docker Compose are installed on your device.
+   - For Ubuntu/Debian, you can install them by running:
+     ```bash
+     # Add Docker's official GPG key:
+     sudo apt-get update
+     sudo apt-get install -y ca-certificates curl
+     sudo install -m 0755 -d /etc/apt/keyrings
+     sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+     sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+     # Add the repository to Apt sources:
+     echo \
+       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+       $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+       sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+     sudo apt-get update
+
+     # Install Docker Engine
+     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+     sudo usermod -aG docker $USER
+     ```
+     *(Log out and log back in, or run `newgrp docker` so your group membership is re-evaluated)*
 2. Clone this repository to your Raspberry Pi.
-3. Open a terminal in the repository folder and run the following to build the app and start the server:
+3. Open a terminal in the repository folder and run the following to create the database file and start the server:
    ```bash
+   touch tracking.db
    docker compose up -d --build
    ```
 4. The service will be running on port `8081` (you can change this in `docker-compose.yml` if it conflicts with another service).
