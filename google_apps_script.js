@@ -2,7 +2,13 @@
 const TRACKING_SERVER_URL = "https://your-custom-domain.com";
 
 function processTrackedDrafts() {
-    var label = GmailApp.getUserLabelByName("TrackMe");
+    var label;
+    try {
+        label = GmailApp.getUserLabelByName("TrackMe");
+    } catch (e) {
+        console.error("Error fetching label 'TrackMe': " + e);
+        return;
+    }
 
     // If the label doesn't exist, log an error and exit
     if (!label) {
@@ -27,11 +33,19 @@ function processTrackedDrafts() {
     // Identify exactly which message IDs are the drafts we need to modify
     var targetMessageIds = [];
     for (var i = 0; i < trackedThreads.length; i++) {
-        var messages = trackedThreads[i].getMessages();
-        for (var j = 0; j < messages.length; j++) {
-            if (messages[j].isDraft()) {
-                targetMessageIds.push(messages[j].getId());
+        try {
+            var messages = trackedThreads[i].getMessages();
+            for (var j = 0; j < messages.length; j++) {
+                try {
+                    if (messages[j].isDraft()) {
+                        targetMessageIds.push(messages[j].getId());
+                    }
+                } catch (innerE) {
+                    console.error("Error processing message " + j + " in thread " + i + ": " + innerE);
+                }
             }
+        } catch (e) {
+            console.error("Error retrieving messages for thread " + i + ": " + e);
         }
     }
 
