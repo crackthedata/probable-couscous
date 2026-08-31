@@ -73,6 +73,12 @@ This project is a lightweight email tracking system for logging opens and clicks
 4. Let the Google Apps Script run (based on your timer). The script will append a tracking pixel, wrap any links for tracking, send the email automatically, and delete the draft.
 5. You can view your tracking stats by visiting `http://<your-public-url>/dashboard`.
 
+### Mail Merge (Multiple Recipients)
+If you address a draft to multiple people in the "To" field (e.g., `alice@example.com, bob@example.com`), the script automatically converts it into a mail merge:
+- It sends individual, separately tracked emails to each person.
+- CC and BCC fields are completely removed for multi-recipient drafts to prevent spamming those addresses with multiple duplicate emails.
+- Your dashboard will show separate opens and clicks for each individual recipient.
+
 ## Database
 
 The tracking events are logged into a local `tracking.db` SQLite file created inside the container and mounted via Docker Compose.
