@@ -78,47 +78,76 @@ function processTrackedDrafts() {
                 draftsProcessed++; // Increment early to ensure we don't scan all drafts if an error occurs below
 
                 var body = message.getBody();
-                // Generate a unique ID for this email
-                var emailId = "id_" + new Date().getTime();
-
-                var encSubj = encodeURIComponent(message.getSubject() || "No Subject");
-                var encTo = encodeURIComponent(message.getTo() || "Unknown Recipient");
+                
+                var rawTo = message.getTo() || "";
+                var recipients = rawTo.split(',').map(function(e) { return e.trim(); }).filter(function(e) { return e.length > 0; });
+                
+                if (recipients.length === 0) {
+                    console.error("No recipients found for draft " + message.getId());
+                    continue;
+                }
 
                 var rawFrom = message.getFrom() || "";
                 var accountMatch = rawFrom.match(/<([^>]+)>/);
                 var account = accountMatch ? accountMatch[1] : rawFrom.trim();
                 if (!account) account = "Unknown Account";
-
-                var encAccount = encodeURIComponent(account);
-
-                // 1. Inject Open Tracker (Python Server)
-                var pixelUrl = TRACKING_SERVER_URL + '/open/' + emailId + '?subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount;
-                var pixel = '<img src="' + pixelUrl + '" width="1" height="1" alt="" style="display:none;" />';
-
-                // 2. Wrap Links for Click Tracking
-                var trackedBody = body.replace(/href="([^"]*)"/gi, function (match, p1) {
-                    // Don't double-wrap or wrap internal protocol links (mailto:)
-                    if (p1.includes(TRACKING_SERVER_URL) || p1.startsWith("mailto:")) {
-                        return match;
-                    }
-                    return 'href="' + TRACKING_SERVER_URL + '/click?id=' + emailId + '&subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount + '&url=' + encodeURIComponent(p1) + '"';
-                });
-
-                // 3. Update the draft and send it
-                var updatedDraft = draft.update(message.getTo(), message.getSubject(), "", {
-                    htmlBody: trackedBody + pixel,
-                    cc: message.getCc(),
-                    bcc: message.getBcc()
-                });
-
-                // Add a small delay to give Google's backend time to persist the updated draft
-                Utilities.sleep(1000);
-
-                updatedDraft.send();
-                console.log("Sent tracked email with ID: " + emailId + " to: " + message.getTo());
                 
-                // Extra safety sleep to prevent rate limiting if sending multiple quickly
-                Utilities.sleep(1000);
+                var aliases = GmailApp.getAliases();
+
+                for (var r = 0; r < recipients.length; r++) {
+                    var recipient = recipients[r];
+                    // Generate a unique ID for this email, add random to prevent duplicates if processed in the same millisecond
+                    var emailId = "id_" + new Date().getTime() + "_" + Math.floor(Math.random() * 10000);
+
+                    var encSubj = encodeURIComponent(message.getSubject() || "No Subject");
+                    var encTo = encodeURIComponent(recipient);
+                    var encAccount = encodeURIComponent(account);
+
+                    // 1. Inject Open Tracker (Python Server)
+                    var pixelUrl = TRACKING_SERVER_URL + '/open/' + emailId + '?subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount;
+                    var pixel = '<img src="' + pixelUrl + '" width="1" height="1" alt="" style="display:none;" />';
+
+                    // 2. Wrap Links for Click Tracking
+                    var trackedBody = body.replace(/href="([^"]*)"/gi, function (match, p1) {
+                        // Don't double-wrap or wrap internal protocol links (mailto:)
+                        if (p1.includes(TRACKING_SERVER_URL) || p1.startsWith("mailto:")) {
+                            return match;
+                        }
+                        return 'href="' + TRACKING_SERVER_URL + '/click?id=' + emailId + '&subject=' + encSubj + '&recipient=' + encTo + '&account=' + encAccount + '&url=' + encodeURIComponent(p1) + '"';
+                    });
+
+                    // 3. Send or Update Draft
+                    // If multiple recipients, strip CC/BCC to avoid spamming them for every individual email
+                    var isMultiple = recipients.length > 1;
+                    var cc = isMultiple ? "" : message.getCc();
+                    var bcc = isMultiple ? "" : message.getBcc();
+
+                    if (r === recipients.length - 1) {
+                        // Last recipient: update the original draft and send it. This cleans up the draft.
+                        var updatedDraft = draft.update(recipient, message.getSubject(), "", {
+                            htmlBody: trackedBody + pixel,
+                            cc: cc,
+                            bcc: bcc
+                        });
+                        Utilities.sleep(1000);
+                        updatedDraft.send();
+                    } else {
+                        // Other recipients: send as new emails
+                        var sendOptions = {
+                            htmlBody: trackedBody + pixel,
+                            cc: cc,
+                            bcc: bcc
+                        };
+                        // Only pass 'from' if it's a verified alias, otherwise it defaults to the primary account
+                        if (aliases.indexOf(account) !== -1) {
+                            sendOptions.from = account;
+                        }
+                        GmailApp.sendEmail(recipient, message.getSubject(), "", sendOptions);
+                        Utilities.sleep(1000); // Prevent rate limiting
+                    }
+
+                    console.log("Sent tracked email with ID: " + emailId + " to: " + recipient);
+                }
             }
         } catch (e) {
             console.error("Error processing individual draft at index " + i + ": " + e);
