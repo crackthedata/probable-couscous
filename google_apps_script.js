@@ -121,13 +121,15 @@ function processTrackedDrafts() {
                     var isMultiple = recipients.length > 1;
                     var cc = isMultiple ? "" : message.getCc();
                     var bcc = isMultiple ? "" : message.getBcc();
+                    var attachments = message.getAttachments();
 
                     if (r === recipients.length - 1) {
                         // Last recipient: update the original draft and send it. This cleans up the draft.
                         var updatedDraft = draft.update(recipient, message.getSubject(), "", {
                             htmlBody: trackedBody + pixel,
                             cc: cc,
-                            bcc: bcc
+                            bcc: bcc,
+                            attachments: attachments
                         });
                         Utilities.sleep(1000);
                         updatedDraft.send();
@@ -136,7 +138,8 @@ function processTrackedDrafts() {
                         var sendOptions = {
                             htmlBody: trackedBody + pixel,
                             cc: cc,
-                            bcc: bcc
+                            bcc: bcc,
+                            attachments: attachments
                         };
                         // Only pass 'from' if it's a verified alias, otherwise it defaults to the primary account
                         if (aliases.indexOf(account) !== -1) {
