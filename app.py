@@ -120,11 +120,61 @@ async def track_click(id: str, url: str, request: Request, background_tasks: Bac
 async def api_stats():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('SELECT email_id, MAX(subject) as subject, MAX(recipient) as recipient, MAX(account) as account, COUNT(*) as count, MAX(timestamp) as last_open FROM opens GROUP BY email_id ORDER BY last_open DESC')
-    opens = [{"email_id": row[0], "subject": row[1], "recipient": row[2], "account": row[3], "count": row[4], "last_open": row[5]} for row in c.fetchall()]
     
-    c.execute('SELECT email_id, url, MAX(subject) as subject, MAX(recipient) as recipient, MAX(account) as account, COUNT(*) as count, MAX(timestamp) as last_click FROM clicks GROUP BY email_id, url ORDER BY last_click DESC')
-    clicks = [{"email_id": row[0], "url": row[1], "subject": row[2], "recipient": row[3], "account": row[4], "count": row[5], "last_click": row[6]} for row in c.fetchall()]
+    # Fetch all opens
+    c.execute('SELECT id, email_id, ip_address, user_agent, timestamp, subject, recipient, account FROM opens ORDER BY timestamp DESC')
+    all_opens = c.fetchall()
+    
+    opens_dict = {}
+    for row in all_opens:
+        row_id, email_id, ip_address, user_agent, timestamp, subject, recipient, account = row
+        if email_id not in opens_dict:
+            opens_dict[email_id] = {
+                "email_id": email_id,
+                "subject": subject,
+                "recipient": recipient,
+                "account": account,
+                "count": 0,
+                "last_open": timestamp,
+                "events": []
+            }
+        opens_dict[email_id]["count"] += 1
+        opens_dict[email_id]["events"].append({
+            "id": row_id,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "timestamp": timestamp
+        })
+    opens = list(opens_dict.values())
+    
+    # Fetch all clicks
+    c.execute('SELECT id, email_id, url, ip_address, user_agent, timestamp, subject, recipient, account FROM clicks ORDER BY timestamp DESC')
+    all_clicks = c.fetchall()
+    
+    clicks_dict = {}
+    for row in all_clicks:
+        row_id, email_id, url, ip_address, user_agent, timestamp, subject, recipient, account = row
+        key = (email_id, url)
+        if key not in clicks_dict:
+            clicks_dict[key] = {
+                "email_id": email_id,
+                "url": url,
+                "subject": subject,
+                "recipient": recipient,
+                "account": account,
+                "count": 0,
+                "last_click": timestamp,
+                "events": []
+            }
+        clicks_dict[key]["count"] += 1
+        clicks_dict[key]["events"].append({
+            "id": row_id,
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "timestamp": timestamp
+        })
+    clicks = list(clicks_dict.values())
+    
     conn.close()
     
     return {"opens": opens, "clicks": clicks}
@@ -145,6 +195,24 @@ async def delete_clicks(email_id: str, request: Request):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("DELETE FROM clicks WHERE email_id = ? AND url = ?", (email_id, url))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
+
+@app.delete("/api/track/open/{id}")
+async def delete_single_open(id: int):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("DELETE FROM opens WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
+
+@app.delete("/api/track/click/{id}")
+async def delete_single_click(id: int):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("DELETE FROM clicks WHERE id = ?", (id,))
     conn.commit()
     conn.close()
     return {"status": "success"}
